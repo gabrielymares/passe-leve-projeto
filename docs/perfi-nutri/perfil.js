@@ -47,5 +47,5 @@ function fazerLogout() {
     
     // Redireciona para a tela de login
     alert("Logout realizado com sucesso!");
-    window.location.href = 'index.html';
+    window.location.href = "../index.html";
 }

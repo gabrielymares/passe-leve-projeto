@@ -297,7 +297,7 @@ btnEnviarLogin.addEventListener("click", (e) => {
     
     // Redireciona com base no tipo
     if (dadosCadastrados.tipo === 'nutricionista') {
-        window.location.href = "../Wnutricionista/telainicial.html";
+        window.location.href = "./Wnutricionista/telainicial.html";
     } else {
         window.location.href = "../formulario/formulario.html";
     }
