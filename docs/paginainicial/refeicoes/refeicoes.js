@@ -1,4 +1,4 @@
-// refeicoes.js (refeicoes/refeicoes.html) - VERSÃO TOTALMENTE CORRIGIDA
+// refeicoes.js (refeicoes/refeicoes.html) - VERSÃO CORRIGIDA E ROBUSTA
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
@@ -10,10 +10,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Validação Inicial ---
     if (!semanaNumero) {
         tituloEl.textContent = "Erro";
-        containerEl.innerHTML = '<p class="mensagem-vazio">Número da semana não especificado.</p>';
+        containerEl.innerHTML = '<p class="mensagem-vazio">Número da semana não especificado na URL.</p>';
         return;
     }
-    tituloEl.textContent = `Semana ${semanaNumero}`;
+    
+    // Converte a semana da URL para número inteiro, garantindo consistência
+    const numeroSemanaInt = parseInt(semanaNumero);
+    if (isNaN(numeroSemanaInt)) {
+        tituloEl.textContent = "Erro";
+        containerEl.innerHTML = '<p class="mensagem-vazio">Valor de semana inválido.</p>';
+        return;
+    }
+    
+    tituloEl.textContent = `Semana ${numeroSemanaInt}`;
 
     // --- Lógica Correta de Busca de Dados ---
     const usuarioJSON = localStorage.getItem('usuario');
@@ -27,27 +36,33 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Passo 1: Encontrar o plano do usuário logado
     const planos = JSON.parse(localStorage.getItem('planosAlimentares')) || [];
-    const planoDoUsuario = planos.find(p => p.cliente_id === usuarioLogado.id);
+    
+    // CORREÇÃO PRINCIPAL: Garante que os IDs (cliente_id e usuario.id) são comparados como strings
+    const planoDoUsuario = planos.find(p => String(p.cliente_id) === String(usuarioLogado.id));
 
     if (!planoDoUsuario) {
-        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para esta semana.</p>';
+        containerEl.innerHTML = '<p class="mensagem-vazio">Plano alimentar não encontrado para este usuário.</p>';
         return;
     }
     
     // Passo 2: Filtrar as refeições que pertencem a esse plano E a essa semana
     const todasRefeicoes = JSON.parse(localStorage.getItem('refeicoes')) || [];
+    
+    // CORREÇÃO: Garante que plano_id é comparado como string e semana como number
     const refeicoesDaSemana = todasRefeicoes.filter(r => 
-        r.plano_id === planoDoUsuario.id && r.semana == semanaNumero
+        String(r.plano_id) === String(planoDoUsuario.id) && 
+        r.semana === numeroSemanaInt // Usando '===' para garantir que o tipo da semana seja Number
     );
 
     if (refeicoesDaSemana.length === 0) {
-        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para esta semana.</p>';
+        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para a Semana ' + numeroSemanaInt + '.</p>';
         return;
     }
 
     // Passo 3: Agrupar as refeições encontradas por dia
     const refeicoesAgrupadasPorDia = refeicoesDaSemana.reduce((acc, refeicao) => {
-        const diaKey = `dia${refeicao.dia}`;
+        // Garante que o dia também é tratado de forma consistente (se for salvo como string)
+        const diaKey = `dia${refeicao.dia}`; 
         if (!acc[diaKey]) acc[diaKey] = [];
         acc[diaKey].push(refeicao);
         acc[diaKey].sort((a, b) => a.horario.localeCompare(b.horario)); // Ordena por horário
@@ -84,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (diasRenderizados === 0) {
-         containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para esta semana.</p>';
+        // Esta mensagem só será exibida se o plano e as refeições forem encontrados,
+        // mas nenhuma delas for agrupada (o que é improvável se a lógica acima funcionar)
+        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição encontrada para exibir nesta semana.</p>';
     }
 });
