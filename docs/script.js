@@ -299,7 +299,7 @@ btnEnviarLogin.addEventListener("click", (e) => {
     if (dadosCadastrados.tipo === 'nutricionista') {
         window.location.href = "./Wnutricionista/telainicial.html";
     } else {
-        window.location.href = "../formulario/formulario.html";
+        window.location.href = "./formulario/formulario.html";
     }
 });
 

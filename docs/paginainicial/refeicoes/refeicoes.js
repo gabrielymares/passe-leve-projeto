@@ -1,4 +1,4 @@
-// refeicoes.js (refeicoes/refeicoes.html) - VERSÃO CORRIGIDA E ROBUSTA
+// refeicoes.js (refeicoes/refeicoes.html) - VERSÃO CORRIGIDA
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
@@ -10,68 +10,92 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Validação Inicial ---
     if (!semanaNumero) {
         tituloEl.textContent = "Erro";
-        containerEl.innerHTML = '<p class="mensagem-vazio">Número da semana não especificado na URL.</p>';
+        containerEl.innerHTML = '<p class="mensagem-vazio">Número da semana não especificado.</p>';
         return;
     }
-    
-    // Converte a semana da URL para número inteiro, garantindo consistência
-    const numeroSemanaInt = parseInt(semanaNumero);
-    if (isNaN(numeroSemanaInt)) {
-        tituloEl.textContent = "Erro";
-        containerEl.innerHTML = '<p class="mensagem-vazio">Valor de semana inválido.</p>';
-        return;
-    }
-    
-    tituloEl.textContent = `Semana ${numeroSemanaInt}`;
+    tituloEl.textContent = `Semana ${semanaNumero}`;
 
-    // --- Lógica Correta de Busca de Dados ---
+    // --- CORREÇÃO: Buscar usuário logado corretamente ---
+    let usuarioLogado = null;
+    
+    // Tenta primeiro buscar do localStorage 'usuario' (sessão individual)
     const usuarioJSON = localStorage.getItem('usuario');
-    if (!usuarioJSON) {
+    if (usuarioJSON) {
+        try {
+            usuarioLogado = JSON.parse(usuarioJSON);
+            console.log('[refeicoes.js] Usuário encontrado em localStorage.usuario:', usuarioLogado);
+        } catch (e) {
+            console.error('[refeicoes.js] Erro ao parsear usuario:', e);
+        }
+    }
+    
+    // Se não encontrou, tenta buscar na lista de usuários
+    if (!usuarioLogado) {
+        const usuariosJSON = localStorage.getItem('usuarios');
+        if (usuariosJSON) {
+            try {
+                const usuarios = JSON.parse(usuariosJSON);
+                // Pega o primeiro usuário do tipo 'paciente' como fallback
+                usuarioLogado = usuarios.find(u => u.tipo === 'paciente');
+                console.log('[refeicoes.js] Usuário encontrado em localStorage.usuarios:', usuarioLogado);
+            } catch (e) {
+                console.error('[refeicoes.js] Erro ao parsear usuarios:', e);
+            }
+        }
+    }
+
+    // Validação final
+    if (!usuarioLogado || !usuarioLogado.id) {
+        console.error('[refeicoes.js] Usuário logado não encontrado ou sem ID');
         alert("Sessão não encontrada. Por favor, faça o login novamente.");
         window.location.href = "../login/index.html";
         return;
     }
-    
-    const usuarioLogado = JSON.parse(usuarioJSON);
+
+    console.log('[refeicoes.js] ID do usuário logado:', usuarioLogado.id);
     
     // Passo 1: Encontrar o plano do usuário logado
     const planos = JSON.parse(localStorage.getItem('planosAlimentares')) || [];
+    console.log('[refeicoes.js] Planos disponíveis:', planos);
     
-    // CORREÇÃO PRINCIPAL: Garante que os IDs (cliente_id e usuario.id) são comparados como strings
-    const planoDoUsuario = planos.find(p => String(p.cliente_id) === String(usuarioLogado.id));
+    const planoDoUsuario = planos.find(p => p.cliente_id == usuarioLogado.id);
+    console.log('[refeicoes.js] Plano encontrado:', planoDoUsuario);
 
     if (!planoDoUsuario) {
-        containerEl.innerHTML = '<p class="mensagem-vazio">Plano alimentar não encontrado para este usuário.</p>';
+        console.warn('[refeicoes.js] Nenhum plano encontrado para o cliente_id:', usuarioLogado.id);
+        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para esta semana.</p>';
         return;
     }
     
     // Passo 2: Filtrar as refeições que pertencem a esse plano E a essa semana
     const todasRefeicoes = JSON.parse(localStorage.getItem('refeicoes')) || [];
+    console.log('[refeicoes.js] Total de refeições no sistema:', todasRefeicoes.length);
     
-    // CORREÇÃO: Garante que plano_id é comparado como string e semana como number
     const refeicoesDaSemana = todasRefeicoes.filter(r => 
-        String(r.plano_id) === String(planoDoUsuario.id) && 
-        r.semana === numeroSemanaInt // Usando '===' para garantir que o tipo da semana seja Number
+        r.plano_id === planoDoUsuario.id && r.semana == semanaNumero
     );
+    console.log('[refeicoes.js] Refeições da semana', semanaNumero, ':', refeicoesDaSemana);
 
     if (refeicoesDaSemana.length === 0) {
-        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para a Semana ' + numeroSemanaInt + '.</p>';
+        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para esta semana.</p>';
         return;
     }
 
     // Passo 3: Agrupar as refeições encontradas por dia
     const refeicoesAgrupadasPorDia = refeicoesDaSemana.reduce((acc, refeicao) => {
-        // Garante que o dia também é tratado de forma consistente (se for salvo como string)
-        const diaKey = `dia${refeicao.dia}`; 
+        const diaKey = `dia${refeicao.dia}`;
         if (!acc[diaKey]) acc[diaKey] = [];
         acc[diaKey].push(refeicao);
-        acc[diaKey].sort((a, b) => a.horario.localeCompare(b.horario)); // Ordena por horário
+        acc[diaKey].sort((a, b) => a.horario.localeCompare(b.horario));
         return acc;
     }, {});
 
+    console.log('[refeicoes.js] Refeições agrupadas por dia:', refeicoesAgrupadasPorDia);
+
     // Passo 4: Renderizar os cards dos dias na tela
-    containerEl.innerHTML = ''; // Limpa o container
+    containerEl.innerHTML = '';
     let diasRenderizados = 0;
+    
     for (let i = 1; i <= 7; i++) {
         const refeicoesDoDia = refeicoesAgrupadasPorDia[`dia${i}`];
 
@@ -99,8 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (diasRenderizados === 0) {
-        // Esta mensagem só será exibida se o plano e as refeições forem encontrados,
-        // mas nenhuma delas for agrupada (o que é improvável se a lógica acima funcionar)
-        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição encontrada para exibir nesta semana.</p>';
+        containerEl.innerHTML = '<p class="mensagem-vazio">Nenhuma refeição cadastrada para esta semana.</p>';
     }
+    
+    console.log('[refeicoes.js] Total de dias renderizados:', diasRenderizados);
 });

@@ -9,7 +9,8 @@ const PAGINA_INICIAL_PACIENTE = "../paginainicial/paginainicial.html"; // Exempl
     // 1. Ninguém está logado? Manda para o login.
     if (!sessaoJSON) {
         // Evita redirecionamento infinito se já estiver na página de login
-        if (!window.location.pathname.includes('login')) {
+        if (!window.location.pathname.includes('login') && !window.location.pathname.includes('index')) {
+
             window.location.href = PAGINA_LOGIN;
         }
         return;
