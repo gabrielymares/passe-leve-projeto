@@ -1,4 +1,4 @@
-const PAGINA_LOGIN = "cadastro.html";
+const PAGINA_LOGIN = "index.html";
 const PAGINA_FORMULARIO = "../formulario/formulario.html";
 const PAGINA_AVALIACAO = "../avaliacao/avaliacao.html";
 const PAGINA_INICIAL_PACIENTE = "../paginainicial/paginainicial.html"; // Exemplo de página principal
